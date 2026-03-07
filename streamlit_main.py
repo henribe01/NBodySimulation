@@ -31,7 +31,7 @@ ax.set_xlim(pos_min, pos_max)
 ax.set_ylim(pos_min, pos_max)
 ax.set_title('Random Walk of Particles')
 # Create animation
-ani = FuncAnimation(fig, update, frames=len(t), blit=True, 
+ani = FuncAnimation(fig, update, frames=len(t), blit=True)
 ani.save('random_walk.gif', writer='Pillow', fps=30)
 
 # Streamlit app
