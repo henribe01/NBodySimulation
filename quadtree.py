@@ -1,6 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
+from matplotlib.axes import Axes
 
 class Body:
     def __init__(self, x: float, y: float) -> None:
@@ -58,7 +59,7 @@ class Rectangle:
                     other.top <= self.bottom or 
                     other.bottom >= self.top)
         
-    def draw(self, ax: plt.Axes, **kwargs) -> None:
+    def draw(self, ax: Axes, **kwargs) -> None:
         """
         Draws the rectangle on a given Matplotlib Axes.
         
@@ -128,10 +129,10 @@ class QuadTree:
         sw_boundary = Rectangle(self.boundary.left, mid_x, mid_y, self.boundary.bottom)
         se_boundary = Rectangle(mid_x, self.boundary.right, mid_y, self.boundary.bottom)
         
-        self.children[0] = QuadTree(nw_boundary, self.max_capacity, self.depth + 1)  # NW
-        self.children[1] = QuadTree(ne_boundary, self.max_capacity, self.depth + 1)  # NE
-        self.children[2] = QuadTree(sw_boundary, self.max_capacity, self.depth + 1)  # SW
-        self.children[3] = QuadTree(se_boundary, self.max_capacity, self.depth + 1)  # SE
+        self.children[0] = self._create_child(nw_boundary)  # NW
+        self.children[1] = self._create_child(ne_boundary)  # NE
+        self.children[2] = self._create_child(sw_boundary)  # SW
+        self.children[3] = self._create_child(se_boundary)  # SE
         
         # Redistribute existing bodies into the appropriate child nodes
         for body in self.bodies:
@@ -166,7 +167,7 @@ class QuadTree:
                 if child is not None:
                     child.query(boundary, found_points)
                     
-    def draw(self, ax: plt.Axes, **kwargs) -> None:
+    def draw(self, ax: Axes, **kwargs) -> None:
         """
         Draws the quadtree boundaries on a given Matplotlib Axes.
         
@@ -179,6 +180,18 @@ class QuadTree:
             for child in self.children:
                 if child is not None:
                     child.draw(ax, **kwargs)
+                    
+    def _create_child(self, boundary: Rectangle) -> QuadTree:
+        """
+        Creates a child QuadTree node with the given boundary.
+        
+        Parameters:
+        - boundary: A Rectangle object defining the boundary of the child node.
+        
+        Returns:
+        - A new QuadTree instance representing the child node.
+        """
+        return QuadTree(boundary, self.max_capacity, self.depth + 1)
         
 
 if __name__ == "__main__":
