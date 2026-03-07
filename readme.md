@@ -7,7 +7,7 @@ This is a simple N-body simulation implemented in Python using the Barnes-Hut al
 - Visualizing the simulation results in an interactive web interface.
 
 ## Features
-- [ ] First tests with Streamlit for web deployment.
+- [x] First tests with Streamlit for web deployment.
 - [ ] Implementation of the Barnes-Hut algorithm for N-body simulations.
 - [ ] Interactive visualization of the simulation results.
 - [ ] User controls for adjusting simulation parameters (e.g., number of bodies, time step, etc.).
