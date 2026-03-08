@@ -86,13 +86,13 @@ class NBodySimulation:
         if save_interval > 0 and not os.path.exists(save_path):
             os.makedirs(save_path)
         
-        for i in range(steps):
-            with Bar(f"Running simulation: Step {i+1}/{steps}", max=steps) as bar:    
+        with Bar(f"Running simulation: ", max=steps) as bar:
+            for i in range(steps):
                 self.step(dt)
                 if save_interval > 0 and i % save_interval == 0:
                     self.save_state(i, save_path)
                 bar.next()
-                
+
     def save_state(self, step: int, save_path: str) -> None:
         """
         Saves the current state of the simulation to a file.

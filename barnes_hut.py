@@ -34,12 +34,17 @@ class BarnesHut(QuadTree):
         if not self.boundary.contains(particle):
             return False
         
-        # Update total mass and center of mass
+        # Update total mass and center of mass using numerically stable formula
+        old_total = self.total_mass
         self.total_mass += particle.mass
-        self.center_of_mass = (
-            (self.center_of_mass[0] * (self.total_mass - particle.mass) + particle.x * particle.mass) / self.total_mass,
-            (self.center_of_mass[1] * (self.total_mass - particle.mass) + particle.y * particle.mass) / self.total_mass
-        )
+        if old_total > 0:
+            # Incremental update to center of mass
+            self.center_of_mass = (
+                (self.center_of_mass[0] * old_total + particle.x * particle.mass) / self.total_mass,
+                (self.center_of_mass[1] * old_total + particle.y * particle.mass) / self.total_mass
+            )
+        else:
+            self.center_of_mass = (particle.x, particle.y)
         
         return super().insert(particle)
     
@@ -49,31 +54,39 @@ class BarnesHut(QuadTree):
 
         if not self.divided:
             force_x, force_y = 0.0, 0.0
+            eps_sq = softening * softening
             for other in self.bodies:
                 if other is particle:
                     continue
                 dx = other.x - particle.x
                 dy = other.y - particle.y
-                dist_sq = dx * dx + dy * dy + softening * softening
-                distance = dist_sq**0.5
-                force_magnitude = (particle.mass * other.mass) / dist_sq
-                force_x += force_magnitude * (dx / distance)
-                force_y += force_magnitude * (dy / distance)
+                dist_sq = dx * dx + dy * dy + eps_sq
+                # Avoid sqrt: force_x += force_magnitude * (dx / distance)
+                # is equivalent to: force_x += (mass1 * mass2 / dist_sq) * (dx / sqrt(dist_sq))
+                # = force_x += (mass1 * mass2 * dx) / (dist_sq * sqrt(dist_sq))
+                # = force_x += (mass1 * mass2 * dx) / dist_sq^1.5
+                inv_dist_32 = dist_sq ** -1.5  # Compute once, use twice
+                force_x += (particle.mass * other.mass * dx) * inv_dist_32
+                force_y += (particle.mass * other.mass * dy) * inv_dist_32
             return (force_x, force_y)
         
         dx = self.center_of_mass[0] - particle.x
         dy = self.center_of_mass[1] - particle.y
-        dist_sq = dx * dx + dy * dy + softening * softening
-        distance = dist_sq**0.5
+        eps_sq = softening * softening
+        dist_sq = dx * dx + dy * dy + eps_sq
         
-        if distance == 0:
+        if dist_sq == 0:
             return (0.0, 0.0)
         
         # Check if we can approximate the force using the center of mass
-        if (self.boundary.right - self.boundary.left) / distance < theta:
-            force_magnitude = (self.total_mass * particle.mass) / dist_sq
-            force_direction = (dx / distance, dy / distance)
-            return (force_magnitude * force_direction[0], force_magnitude * force_direction[1])
+        # Avoid sqrt: compare s/d < theta => s^2 < theta^2 * d^2
+        size = self.boundary.right - self.boundary.left
+        theta_sq = theta * theta
+        if (size * size) < theta_sq * dist_sq:
+            inv_dist_32 = dist_sq ** -1.5
+            force_x = (self.total_mass * particle.mass * dx) * inv_dist_32
+            force_y = (self.total_mass * particle.mass * dy) * inv_dist_32
+            return (force_x, force_y)
         else:
             force_x, force_y = 0.0, 0.0
             for child in self.children:

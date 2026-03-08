@@ -39,7 +39,8 @@ class Rectangle:
         Returns:
         - True if the rectangle contains the body, False otherwise.
         """
-        return (self.left <= body.x < self.right) and (self.bottom <= body.y < self.top)
+        # Use <= for all comparisons to handle floating point properly
+        return (self.left <= body.x <= self.right) and (self.bottom <= body.y <= self.top)
     
     def intersects(self, other: Rectangle) -> bool:
         """
