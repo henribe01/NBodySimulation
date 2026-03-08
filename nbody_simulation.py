@@ -77,11 +77,11 @@ class NBodySimulation:
         - save_path (str): The directory path where the simulation states will be saved if save_interval is specified.
         - show_progress (bool): Whether to display a progress bar during the simulation.
         """
-        if save_interval > 0 and not os.path.exists(save_path):
-            os.makedirs(save_path)
-            
         if save_interval > 0 and save_path == '':
             save_path = f'saves_{int(time.time())}/'
+            
+        if save_interval > 0 and not os.path.exists(save_path):
+            os.makedirs(save_path)
         
         if show_progress:
             with Bar('Running Simulation', max=steps) as bar:
