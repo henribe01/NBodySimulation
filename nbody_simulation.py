@@ -3,6 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
 import os
+from progress.bar import Bar
 
 class NBodySimulation:
     def __init__(self, particles: list[Particle], boundary: Rectangle, theta: float = 0.5, softening: float = 0.1) -> None:
@@ -44,10 +45,12 @@ class NBodySimulation:
         if save_interval > 0 and not os.path.exists(save_path):
             os.makedirs(save_path)
         
-        for i in range(steps):
-            self.step(dt)
-            if save_interval > 0 and i % save_interval == 0:
-                self.save_state(i, save_path)
+        with Bar('Running Simulation', max=steps) as bar:
+            for i in range(steps):
+                self.step(dt)
+                if save_interval > 0 and i % save_interval == 0:
+                    self.save_state(i, save_path)
+                bar.next()
                 
     def save_state(self, step: int, save_path: str) -> None:
         """
