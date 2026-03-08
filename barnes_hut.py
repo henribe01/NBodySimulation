@@ -35,7 +35,7 @@ class BarnesHut(QuadTree):
         
         return super().insert(particle)
     
-    def compute_force(self, particle: Particle, theta: float, softening: float = 1e-9) -> tuple[float, float]:
+    def compute_force(self, particle: Particle, theta: float, softening: float = 1e-3) -> tuple[float, float]:
         if self.total_mass == 0:
             return (0.0, 0.0)
 
