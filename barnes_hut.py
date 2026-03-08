@@ -1,9 +1,13 @@
 from quadtree import QuadTree, Rectangle, Body
+import numba
 
 class Particle(Body):
     def __init__(self, x: float, y: float, mass: float, vx: float = 0.0, vy: float = 0.0):
         super().__init__(x, y)
+        if mass <= 0:
+            raise ValueError("Particle mass must be greater than zero")
         self.mass = mass
+        self.inv_mass = 1.0 / mass
         self.vx = vx
         self.vy = vy
         
@@ -39,6 +43,8 @@ class BarnesHut(QuadTree):
         if self.total_mass == 0:
             return (0.0, 0.0)
 
+        theta_sq = theta * theta
+
         if not self.divided:
             force_x, force_y = 0.0, 0.0
             for other in self.bodies:
@@ -62,7 +68,8 @@ class BarnesHut(QuadTree):
             return (0.0, 0.0)
         
         # Check if we can approximate the force using the center of mass
-        if (self.boundary.right - self.boundary.left) / distance < theta:
+        size = self.boundary.right - self.boundary.left
+        if (size * size) < (theta_sq * dist_sq):
             force_magnitude = (self.total_mass * particle.mass) / dist_sq
             force_direction = (dx / distance, dy / distance)
             return (force_magnitude * force_direction[0], force_magnitude * force_direction[1])

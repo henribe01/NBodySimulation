@@ -5,6 +5,7 @@ from matplotlib.animation import FuncAnimation
 import os
 from progress.bar import Bar
 import time
+import numba
 
 class NBodySimulation:
     def __init__(
@@ -14,12 +15,15 @@ class NBodySimulation:
         theta: float = 0.8,
         softening: float = 0.1,
         max_capacity: int = 8,
+        tree_rebuild_interval: int = 1,
     ) -> None:
         self.particles = particles
         self.boundary = boundary
         self.theta = theta
         self.softening = softening
         self.max_capacity = max_capacity
+        self.tree_rebuild_interval = tree_rebuild_interval
+        self.current_step = 0
         self.tree: BarnesHut | None = None
         self._cached_forces: list[tuple[float, float]] | None = None
         
@@ -29,7 +33,9 @@ class NBodySimulation:
             self.tree.insert(particle)
             
     def _compute_forces(self) -> list[tuple[float, float]]:
-        self.build_tree()
+        # Only rebuild tree at specified intervals
+        if self.tree is None or self.current_step % self.tree_rebuild_interval == 0:
+            self.build_tree()
         if self.tree is None:
             return [(0.0, 0.0) for _ in self.particles]
         tree = self.tree
@@ -43,8 +49,8 @@ class NBodySimulation:
             self._cached_forces = self._compute_forces()
 
         for particle, (fx, fy) in zip(self.particles, self._cached_forces):
-            vx_half = particle.vx + 0.5 * fx / particle.mass * dt
-            vy_half = particle.vy + 0.5 * fy / particle.mass * dt
+            vx_half = particle.vx + 0.5 * fx * particle.inv_mass * dt
+            vy_half = particle.vy + 0.5 * fy * particle.inv_mass * dt
             particle.x += vx_half * dt
             particle.y += vy_half * dt
 
@@ -54,10 +60,11 @@ class NBodySimulation:
         new_forces = self._compute_forces()
 
         for particle, (fx, fy) in zip(self.particles, new_forces):
-            particle.vx += 0.5 * fx / particle.mass * dt
-            particle.vy += 0.5 * fy / particle.mass * dt
+            particle.vx += 0.5 * fx * particle.inv_mass * dt
+            particle.vy += 0.5 * fy * particle.inv_mass * dt
 
         self._cached_forces = new_forces
+        self.current_step += 1
                 
     def run(
         self,
