@@ -1,21 +1,29 @@
 from quadtree import QuadTree, Rectangle, Body
 
 class Particle(Body):
-    def __init__(self, x: float, y: float, mass: float, vx: float = 0.0, vy: float = 0.0):
+    def __init__(self, x: float, y: float, mass: float, vx: float = 0.0, vy: float = 0.0, color: str = 'r', alpha: float = 1.0) -> None:
         super().__init__(x, y)
         self.mass = mass
         self.vx = vx
         self.vy = vy
+        self.color = color
+        self.alpha = alpha
         
     
 class BarnesHut(QuadTree):
-    def __init__(self, boundary: Rectangle, max_capacity: int = 1, depth: int = 0):
-        super().__init__(boundary, max_capacity, depth)
+    def __init__(self, boundary: Rectangle, max_capacity: int = 1, depth: int = 0, max_depth: int = 20, min_cell_size: float = 1e-6):
+        super().__init__(boundary, max_capacity, depth, max_depth, min_cell_size)
         self.total_mass = 0.0
         self.center_of_mass = (0.0, 0.0)
         
     def _create_child(self, boundary: Rectangle) -> QuadTree:
-        return BarnesHut(boundary, self.max_capacity, self.depth + 1)
+        return BarnesHut(
+            boundary,
+            self.max_capacity,
+            self.depth + 1,
+            self.max_depth,
+            self.min_cell_size,
+        )
         
     def insert(self, body: Body) -> bool:
         if not isinstance(body, Particle):
@@ -69,7 +77,7 @@ class BarnesHut(QuadTree):
         else:
             force_x, force_y = 0.0, 0.0
             for child in self.children:
-                if isinstance(child, BarnesHut):
+                if isinstance(child, BarnesHut) and child.total_mass > 0:
                     fx, fy = child.compute_force(particle, theta, softening)
                     force_x += fx
                     force_y += fy

@@ -1,7 +1,4 @@
 import numpy as np
-import matplotlib.pyplot as plt
-import matplotlib.patches as patches
-from matplotlib.axes import Axes
 
 class Body:
     def __init__(self, x: float, y: float) -> None:
@@ -59,7 +56,7 @@ class Rectangle:
                     other.top <= self.bottom or 
                     other.bottom >= self.top)
         
-    def draw(self, ax: Axes, **kwargs) -> None:
+    def draw(self, ax, **kwargs) -> None:
         """
         Draws the rectangle on a given Matplotlib Axes.
         
@@ -67,12 +64,14 @@ class Rectangle:
         - ax: The Matplotlib Axes to draw the rectangle on.
         - kwargs: Additional keyword arguments for the rectangle patch (e.g., edgecolor, facecolor).
         """
+        import matplotlib.patches as patches
+
         rect = patches.Rectangle((self.left, self.bottom), self.right - self.left, self.top - self.bottom, **kwargs)
         ax.add_patch(rect)
     
 
 class QuadTree:
-    def __init__(self, boundary: Rectangle, max_capacity: int = 1, depth: int = 0) -> None:
+    def __init__(self, boundary: Rectangle, max_capacity: int = 1, depth: int = 0, max_depth: int = 20, min_cell_size: float = 1e-6) -> None:
         """
         Initializes a QuadTree node.
         
@@ -86,6 +85,8 @@ class QuadTree:
         self.max_capacity = max_capacity
         self.bodies = []
         self.depth = depth
+        self.max_depth = max_depth
+        self.min_cell_size = min_cell_size
         self.children: list[QuadTree | None] = [None, None, None, None]  # NW, NE, SW, SE
         self.divided = False
         
@@ -107,20 +108,31 @@ class QuadTree:
         if len(self.bodies) < self.max_capacity and not self.divided:
             self.bodies.append(body)
             return True
+
+        # Stop subdividing when hitting depth/cell-size limits
+        if not self.divided and not self._can_subdivide():
+            self.bodies.append(body)
+            return True
         
         # If the node is full and not divided, subdivide it and redistribute the bodies
         if not self.divided:
-            self.subdivide()
+            subdivided = self.subdivide()
+            if not subdivided:
+                self.bodies.append(body)
+                return True
         for child in self.children:
             if child is not None and child.insert(body):
                 return True
         
         return False
     
-    def subdivide(self) -> None:
+    def subdivide(self) -> bool:
         """
         Subdivides the current node into four child nodes (NW, NE, SW, SE).
         """
+        if not self._can_subdivide():
+            return False
+
         mid_x = (self.boundary.left + self.boundary.right) / 2
         mid_y = (self.boundary.top + self.boundary.bottom) / 2
         
@@ -143,6 +155,7 @@ class QuadTree:
         # Clear the bodies from the current node since they are now in child nodes
         self.bodies.clear()
         self.divided = True
+        return True
         
     def query(self, boundary: Rectangle, found_points: list[Body]) -> None:
         """
@@ -167,7 +180,7 @@ class QuadTree:
                 if child is not None:
                     child.query(boundary, found_points)
                     
-    def draw(self, ax: Axes, **kwargs) -> None:
+    def draw(self, ax, **kwargs) -> None:
         """
         Draws the quadtree boundaries on a given Matplotlib Axes.
         
@@ -191,10 +204,26 @@ class QuadTree:
         Returns:
         - A new QuadTree instance representing the child node.
         """
-        return QuadTree(boundary, self.max_capacity, self.depth + 1)
+        return QuadTree(
+            boundary,
+            self.max_capacity,
+            self.depth + 1,
+            self.max_depth,
+            self.min_cell_size,
+        )
+
+    def _can_subdivide(self) -> bool:
+        if self.depth >= self.max_depth:
+            return False
+
+        width = self.boundary.right - self.boundary.left
+        height = self.boundary.top - self.boundary.bottom
+        return width > self.min_cell_size and height > self.min_cell_size
         
 
 if __name__ == "__main__":
+    import matplotlib.pyplot as plt
+
     # Example usage of the QuadTree
     
     # Function to generate random bodies (gaussian distribution around the center)
