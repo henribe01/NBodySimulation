@@ -1,7 +1,12 @@
-from barnes_hut import BarnesHut, Particle, Rectangle
+try:
+    from barnes_hut_cython import BarnesHut, Particle, Rectangle
+except ImportError:
+    from barnes_hut import BarnesHut, Particle, Rectangle
 import numpy as np
 import os
 from progress.bar import Bar
+import time
+import numba
 
 class NBodySimulation:
     def __init__(
@@ -9,71 +14,67 @@ class NBodySimulation:
         particles: list[Particle],
         boundary: Rectangle,
         theta: float = 0.8,
-        softening: float = 1e-9,
-        max_capacity: int = 16,
-        max_depth: int = 20,
-        min_cell_size: float = 1e-6,
-        integrator: str = 'euler',
-    ):
+        softening: float = 0.1,
+        max_capacity: int = 8,
+        tree_rebuild_interval: int = 1,
+    ) -> None:
         self.particles = particles
         self.boundary = boundary
         self.theta = theta
         self.softening = softening
         self.max_capacity = max_capacity
-        self.max_depth = max_depth
-        self.min_cell_size = min_cell_size
-        self.integrator = integrator
+        self.tree_rebuild_interval = tree_rebuild_interval
+        self.current_step = 0
         self.tree: BarnesHut | None = None
+        self._cached_forces: list[tuple[float, float]] | None = None
         
     def build_tree(self) -> None:
-        self.tree = BarnesHut(
-            self.boundary,
-            max_capacity=self.max_capacity,
-            max_depth=self.max_depth,
-            min_cell_size=self.min_cell_size,
-        )
+        self.tree = BarnesHut(self.boundary, max_capacity=self.max_capacity)
         for particle in self.particles:
             self.tree.insert(particle)
-
+            
     def _compute_forces(self) -> list[tuple[float, float]]:
+        # Only rebuild tree at specified intervals
+        if self.tree is None or self.current_step % self.tree_rebuild_interval == 0:
+            self.build_tree()
         if self.tree is None:
             return [(0.0, 0.0) for _ in self.particles]
-
         tree = self.tree
-        return [tree.compute_force(particle, self.theta, self.softening) for particle in self.particles]
+        return [tree.compute_force(p, self.theta, self.softening) for p in self.particles]
             
     def step(self, dt: float) -> None:
-        self.build_tree()
-        if self.tree is None:
+        if not self.particles:
             return
 
-        if self.integrator == 'leapfrog':
-            forces = self._compute_forces()
+        if self._cached_forces is None:
+            self._cached_forces = self._compute_forces()
 
-            for particle, (force_x, force_y) in zip(self.particles, forces):
-                particle.vx += (force_x / particle.mass) * (0.5 * dt)
-                particle.vy += (force_y / particle.mass) * (0.5 * dt)
+        for particle, (fx, fy) in zip(self.particles, self._cached_forces):
+            vx_half = particle.vx + 0.5 * fx * particle.inv_mass * dt
+            vy_half = particle.vy + 0.5 * fy * particle.inv_mass * dt
+            particle.x += vx_half * dt
+            particle.y += vy_half * dt
 
-            for particle in self.particles:
-                particle.x += particle.vx * dt
-                particle.y += particle.vy * dt
+            particle.vx = vx_half
+            particle.vy = vy_half
 
-            self.build_tree()
-            new_forces = self._compute_forces()
-            for particle, (force_x, force_y) in zip(self.particles, new_forces):
-                particle.vx += (force_x / particle.mass) * (0.5 * dt)
-                particle.vy += (force_y / particle.mass) * (0.5 * dt)
-            return
+        new_forces = self._compute_forces()
 
-        # Default: explicit Euler integration
-        forces = self._compute_forces()
-        for particle, (force_x, force_y) in zip(self.particles, forces):
-            particle.vx += (force_x / particle.mass) * dt
-            particle.vy += (force_y / particle.mass) * dt
-            particle.x += particle.vx * dt
-            particle.y += particle.vy * dt
+        for particle, (fx, fy) in zip(self.particles, new_forces):
+            particle.vx += 0.5 * fx * particle.inv_mass * dt
+            particle.vy += 0.5 * fy * particle.inv_mass * dt
+
+        self._cached_forces = new_forces
+        self.current_step += 1
                 
-    def run(self, steps: int, dt: float, save_interval: int = -1, save_path: str = 'saves/') -> None:
+    def run(
+        self,
+        steps: int,
+        dt: float,
+        save_interval: int = -1,
+        save_path: str = '',
+        show_progress: bool = True,
+    ) -> None:
         """
         Runs the N-body simulation for a given number of steps and time interval.
         
@@ -82,17 +83,28 @@ class NBodySimulation:
         - dt (float): The time interval for each step.
         - save_interval (int): The interval at which to save the state of the simulation. If -1, no saving is done.
         - save_path (str): The directory path where the simulation states will be saved if save_interval is specified.
+        - show_progress (bool): Whether to display a progress bar during the simulation.
         """
+        if save_interval > 0 and save_path == '':
+            save_path = f'saves_{int(time.time())}/'
+            
         if save_interval > 0 and not os.path.exists(save_path):
             os.makedirs(save_path)
         
-        with Bar(f"Running simulation: ", max=steps) as bar:
-            for i in range(steps):
-                self.step(dt)
-                if save_interval > 0 and i % save_interval == 0:
-                    self.save_state(i, save_path)
-                bar.next()
+        if show_progress:
+            with Bar('Running Simulation', max=steps) as bar:
+                for i in range(steps):
+                    self.step(dt)
+                    if save_interval > 0 and i % save_interval == 0:
+                        self.save_state(i, save_path)
+                    bar.next()
+            return
 
+        for i in range(steps):
+            self.step(dt)
+            if save_interval > 0 and i % save_interval == 0:
+                self.save_state(i, save_path)
+                
     def save_state(self, step: int, save_path: str) -> None:
         """
         Saves the current state of the simulation to a file.

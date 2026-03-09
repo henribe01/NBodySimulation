@@ -8,9 +8,10 @@ This is a simple N-body simulation implemented in Python using the Barnes-Hut al
 
 ## Features
 - [x] First tests with Streamlit for web deployment.
-- [ ] Implementation of the Barnes-Hut algorithm for N-body simulations.
+- [x] Implementation of the Barnes-Hut algorithm for N-body simulations.
 - [ ] Interactive visualization of the simulation results.
 - [ ] User controls for adjusting simulation parameters (e.g., number of bodies, time step, etc.).
+- [x] Switch from Python to Cython for performance optimization 
 
 ## Barnes-Hut Algorithm
 The Barnes-Hut algorithm is a method for efficiently simulating the gravitational interactions between a large number of bodies. It works by dividing the simulation space into a hierarchical tree structure (octree in 3D, quadtree in 2D) and approximating the forces from distant bodies using their center of mass. This reduces the computational complexity from O(N^2) to O(N log N), making it feasible to simulate larger systems.
