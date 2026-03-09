@@ -1,4 +1,7 @@
-from barnes_hut import BarnesHut, Particle, Rectangle
+try:
+    from barnes_hut_cython import BarnesHut, Particle, Rectangle
+except ImportError:
+    from barnes_hut import BarnesHut, Particle, Rectangle
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
