@@ -1,12 +1,13 @@
 try:
-    from barnes_hut_cython import BarnesHut, Particle, Rectangle
+    from barnes_hut_cython import BarnesHut, Particle, Rectangle, integrate_step_1, integrate_step_2
 except ImportError:
-    from barnes_hut import BarnesHut, Particle, Rectangle
+    raise ImportError("Cython module not found. Please compile barnes_hut_cython.pyx before running the simulation.")
 import numpy as np
 import os
 from progress.bar import Bar
 import time
 import numba
+
 
 class NBodySimulation:
     def __init__(
@@ -26,45 +27,41 @@ class NBodySimulation:
         self.tree_rebuild_interval = tree_rebuild_interval
         self.current_step = 0
         self.tree: BarnesHut | None = None
-        self._cached_forces: list[tuple[float, float]] | None = None
         
     def build_tree(self) -> None:
         self.tree = BarnesHut(self.boundary, max_capacity=self.max_capacity)
         for particle in self.particles:
             self.tree.insert(particle)
             
-    def _compute_forces(self) -> list[tuple[float, float]]:
+    def _compute_forces(self) -> None:
         # Only rebuild tree at specified intervals
         if self.tree is None or self.current_step % self.tree_rebuild_interval == 0:
             self.build_tree()
+            
         if self.tree is None:
-            return [(0.0, 0.0) for _ in self.particles]
+            for p in self.particles:
+                p.fx = 0.0
+                p.fy = 0.0
+            return
+        
         tree = self.tree
-        return [tree.compute_force(p, self.theta, self.softening) for p in self.particles]
+        for p in self.particles:
+            tree.compute_force(p, self.theta, self.softening)
             
     def step(self, dt: float) -> None:
         if not self.particles:
             return
-
-        if self._cached_forces is None:
-            self._cached_forces = self._compute_forces()
-
-        for particle, (fx, fy) in zip(self.particles, self._cached_forces):
-            vx_half = particle.vx + 0.5 * fx * particle.inv_mass * dt
-            vy_half = particle.vy + 0.5 * fy * particle.inv_mass * dt
-            particle.x += vx_half * dt
-            particle.y += vy_half * dt
-
-            particle.vx = vx_half
-            particle.vy = vy_half
-
+        
+        if self.current_step == 0:
+            self._compute_forces()            
+        
+        # First half of the leapfrog integration
+        integrate_step_1(self.particles, dt)
+        # Compute new forces after the first half step
         new_forces = self._compute_forces()
-
-        for particle, (fx, fy) in zip(self.particles, new_forces):
-            particle.vx += 0.5 * fx * particle.inv_mass * dt
-            particle.vy += 0.5 * fy * particle.inv_mass * dt
-
-        self._cached_forces = new_forces
+        # Second half of the leapfrog integration
+        integrate_step_2(self.particles, dt)
+    
         self.current_step += 1
                 
     def run(

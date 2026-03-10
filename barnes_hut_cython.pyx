@@ -1,6 +1,7 @@
-# cython: cdivision=True
 # cython: boundscheck=False
 # cython: wraparound=False
+# cython: cdivision=True
+# cython: nonecheck=False
 
 from libc.math cimport sqrt
 
@@ -8,8 +9,8 @@ cdef class Particle:
     cdef public double x, y
     cdef public double vx, vy
     cdef public double mass
-
     cdef public double inv_mass
+    cdef public double fx, fy
 
     def __init__(self, double x, double y, double mass, double vx=0.0, double vy=0.0):
         self.x = x
@@ -17,6 +18,8 @@ cdef class Particle:
         self.vx = vx
         self.vy = vy
         self.mass = mass
+        self.fx = 0.0
+        self.fy = 0.0
         if mass > 0:
             self.inv_mass = 1.0 / mass
         else:
@@ -31,10 +34,10 @@ cdef class Rect:
         self.y_min = bottom if bottom < top else top
         self.y_max = top if top > bottom else bottom
     
-    cpdef bint contains(self, Particle p):
+    cdef inline bint contains(self, Particle p):
         return (self.x_min <= p.x < self.x_max) and (self.y_min <= p.y < self.y_max)
     
-    cdef bint intersects(self, Rect other):
+    cdef inline bint intersects(self, Rect other):
         return not (self.x_max <= other.x_min or self.x_min >= other.x_max or
                     self.y_max <= other.y_min or self.y_min >= other.y_max)
     
@@ -149,17 +152,17 @@ cdef class BarnesHut:
         cdef double dy = p1.y - p2.y
         return sqrt(dx * dx + dy * dy)
 
-    cpdef tuple compute_force(self, Particle p, double theta, double softening):
+    cpdef void compute_force(self, Particle p, double theta, double softening):
         # Python wrapper to initialize and return the force as a tuple
-        cdef double fx = 0.0
-        cdef double fy = 0.0
         cdef double theta_sq = theta * theta
         cdef double softening_sq = softening * softening
 
-        self._compute_force(p, theta_sq, softening_sq, &fx, &fy)
-        return fx, fy
+        p.fx = 0.0
+        p.fy = 0.0
 
-    cdef void _compute_force(self, Particle p, double theta_sq, double softening_sq, double* fx, double* fy):
+        self._compute_force(p, theta_sq, softening_sq)
+
+    cdef void _compute_force(self, Particle p, double theta_sq, double softening_sq):
         # Pure C implementation of the force calculation
         cdef int i
         cdef Particle p_other
@@ -186,8 +189,8 @@ cdef class BarnesHut:
                 force_mag = (p_other.mass * p.inv_mass) / dist_sq
 
                 # Accumulate forces
-                fx[0] += force_mag * dx_p / distance
-                fy[0] += force_mag * dy_p / distance
+                p.fx += force_mag * dx_p / distance
+                p.fy += force_mag * dy_p / distance
             return
         
         # If this is an internal node, check if we can approximate it
@@ -203,20 +206,51 @@ cdef class BarnesHut:
         if (size * size) < (theta_sq * dist_sq):
             # Treat this node as a single body
             force_mag = (self.total_mass * p.inv_mass) / dist_sq
-            fx[0] += force_mag * dx / distance
-            fy[0] += force_mag * dy / distance
+            p.fx += force_mag * dx / distance
+            p.fy += force_mag * dy / distance
         else:
             # Otherwise, we need to go deeper into the tree
             if self.nw is not None:
-                self.nw._compute_force(p, theta_sq, softening_sq, fx, fy)
+                self.nw._compute_force(p, theta_sq, softening_sq)
             if self.ne is not None:
-                self.ne._compute_force(p, theta_sq, softening_sq, fx, fy)
+                self.ne._compute_force(p, theta_sq, softening_sq)
             if self.sw is not None:
-                self.sw._compute_force(p, theta_sq, softening_sq, fx, fy)
+                self.sw._compute_force(p, theta_sq, softening_sq)
             if self.se is not None:
-                self.se._compute_force(p, theta_sq, softening_sq, fx, fy)
+                self.se._compute_force(p, theta_sq, softening_sq)
 
 
 Rectangle = Rect
 
 
+cpdef void integrate_step_1(list particles, double dt):
+    """First half of the leapfrog integration step: update velocities by half step and positions by full step."""
+    cdef int i
+    cdef Particle p
+    cdef double vx_half, vy_half
+
+    for i in range(len(particles)):
+        p = <Particle>particles[i]
+
+        # Update velocities by half step
+        vx_half = p.vx + 0.5 * p.fx * p.inv_mass * dt
+        vy_half = p.vy + 0.5 * p.fy * p.inv_mass * dt
+
+        # Update positions by full step
+        p.x += vx_half * dt
+        p.y += vy_half * dt
+
+        # Store the half-step velocities back in the particle for the second half of the leapfrog step
+        p.vx = vx_half
+        p.vy = vy_half
+
+cpdef void integrate_step_2(list particles, double dt):
+    """Second half of the leapfrog integration step: update velocities by another half step using the new forces."""
+    cdef int i
+    cdef Particle p
+
+    for i in range(len(particles)):
+        p = <Particle>particles[i]
+
+        p.vx += 0.5 * p.fx * p.inv_mass * dt
+        p.vy += 0.5 * p.fy * p.inv_mass * dt
