@@ -1,3 +1,7 @@
+# cython: cdivision=True
+# cython: boundscheck=False
+# cython: wraparound=False
+
 from libc.math cimport sqrt
 
 cdef class Particle:
@@ -99,10 +103,10 @@ cdef class BarnesHut:
         cdef int i
         cdef Particle p
 
-        nw_boundary = Rect(self.boundary.x_min, mid_x, mid_y, self.boundary.y_max)
-        ne_boundary = Rect(mid_x, self.boundary.x_max, mid_y, self.boundary.y_max)
-        sw_boundary = Rect(self.boundary.x_min, mid_x, self.boundary.y_min, mid_y)
-        se_boundary = Rect(mid_x, self.boundary.x_max, self.boundary.y_min, mid_y)
+        cdef Rect nw_boundary = Rect(self.boundary.x_min, mid_x, mid_y, self.boundary.y_max)
+        cdef Rect ne_boundary = Rect(mid_x, self.boundary.x_max, mid_y, self.boundary.y_max)
+        cdef Rect sw_boundary = Rect(self.boundary.x_min, mid_x, self.boundary.y_min, mid_y)
+        cdef Rect se_boundary = Rect(mid_x, self.boundary.x_max, self.boundary.y_min, mid_y)
 
         self.nw = BarnesHut(nw_boundary, self.capacity, self.depth + 1)
         self.ne = BarnesHut(ne_boundary, self.capacity, self.depth + 1)
@@ -146,74 +150,71 @@ cdef class BarnesHut:
         return sqrt(dx * dx + dy * dy)
 
     cpdef tuple compute_force(self, Particle p, double theta, double softening):
-        cdef double theta_sq
+        # Python wrapper to initialize and return the force as a tuple
         cdef double fx = 0.0
         cdef double fy = 0.0
+        cdef double theta_sq = theta * theta
+        cdef double softening_sq = softening * softening
+
+        self._compute_force(p, theta_sq, softening_sq, &fx, &fy)
+        return fx, fy
+
+    cdef void _compute_force(self, Particle p, double theta_sq, double softening_sq, double* fx, double* fy):
+        # Pure C implementation of the force calculation
         cdef int i
-        cdef Particle other
+        cdef Particle p_other
         cdef double dx_p, dy_p, dist_sq, distance, force_mag
         cdef double dx, dy, size
-        cdef tuple f_child
 
-        # Early return if node is empty
+        # Check if node is empty
         if self.total_mass == 0:
-            return (0.0, 0.0)
+            return
         
-        theta_sq = theta * theta
-        
-        # If this is a leaf node, compute direct forces from all particles
+        # If this node is a leaf, compute force directly
         if not self.divided:
             for i in range(self.count):
-                other = <Particle>self.particles[i]
-                # Skip if it's the same particle
-                if other.x == p.x and other.y == p.y:
+                p_other = <Particle>self.particles[i]
+
+                # Check if it's the same particle
+                if p_other is p:
                     continue
                 
-                dx_p = other.x - p.x
-                dy_p = other.y - p.y
-                dist_sq = dx_p * dx_p + dy_p * dy_p + softening * softening
+                dx_p = p_other.x - p.x
+                dy_p = p_other.y - p.y
+                dist_sq = dx_p * dx_p + dy_p * dy_p + softening_sq
                 distance = sqrt(dist_sq)
-                force_mag = (p.mass * other.mass) / dist_sq
-                fx += force_mag * (dx_p / distance)
-                fy += force_mag * (dy_p / distance)
-            
-            return (fx, fy)
+                force_mag = (p_other.mass * p.inv_mass) / dist_sq
+
+                # Accumulate forces
+                fx[0] += force_mag * dx_p / distance
+                fy[0] += force_mag * dy_p / distance
+            return
         
-        # If this is an internal node, use Barnes-Hut approximation
+        # If this is an internal node, check if we can approximate it
         dx = self.center_of_mass_x - p.x
         dy = self.center_of_mass_y - p.y
-        dist_sq = dx * dx + dy * dy + softening * softening
+        dist_sq = dx * dx + dy * dy + softening_sq
         distance = sqrt(dist_sq)
-        
+
         if distance == 0:
-            return (0.0, 0.0)
+            return
         
-        # Check if we can approximate using center of mass
         size = self.boundary.x_max - self.boundary.x_min
         if (size * size) < (theta_sq * dist_sq):
-            # Use center of mass approximation
-            force_mag = (self.total_mass * p.mass) / dist_sq
-            return (force_mag * (dx / distance), force_mag * (dy / distance))
+            # Treat this node as a single body
+            force_mag = (self.total_mass * p.inv_mass) / dist_sq
+            fx[0] += force_mag * dx / distance
+            fy[0] += force_mag * dy / distance
         else:
-            # Recursively compute forces from children
+            # Otherwise, we need to go deeper into the tree
             if self.nw is not None:
-                f_child = self.nw.compute_force(p, theta, softening)
-                fx += f_child[0]
-                fy += f_child[1]
+                self.nw._compute_force(p, theta_sq, softening_sq, fx, fy)
             if self.ne is not None:
-                f_child = self.ne.compute_force(p, theta, softening)
-                fx += f_child[0]
-                fy += f_child[1]
+                self.ne._compute_force(p, theta_sq, softening_sq, fx, fy)
             if self.sw is not None:
-                f_child = self.sw.compute_force(p, theta, softening)
-                fx += f_child[0]
-                fy += f_child[1]
+                self.sw._compute_force(p, theta_sq, softening_sq, fx, fy)
             if self.se is not None:
-                f_child = self.se.compute_force(p, theta, softening)
-                fx += f_child[0]
-                fy += f_child[1]
-            
-            return (fx, fy)
+                self.se._compute_force(p, theta_sq, softening_sq, fx, fy)
 
 
 Rectangle = Rect
