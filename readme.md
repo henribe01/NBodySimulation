@@ -14,7 +14,11 @@ This is a simple N-body simulation implemented in Python using the Barnes-Hut al
 - [x] Switch from Python to Cython for performance optimization 
 
 ## Barnes-Hut Algorithm
-The Barnes-Hut algorithm is a method for efficiently simulating the gravitational interactions between a large number of bodies. It works by dividing the simulation space into a hierarchical tree structure (octree in 3D, quadtree in 2D) and approximating the forces from distant bodies using their center of mass. This reduces the computational complexity from O(N^2) to O(N log N), making it feasible to simulate larger systems.
+The Barnes-Hut algorithm is a method for efficiently simulating the gravitational interactions between a large number of bodies. It works by dividing the simulation space into a hierarchical tree structure (octree in 3D, quadtree in 2D) and approximating the forces from distant bodies using their center of mass. This reduces the computational complexity from $\mathcal{O}(N^2)$ to $\mathcal{O}(N \log N)$, making it feasible to simulate larger systems.
+
+## Optimization with Cython
+To further optimize the performance of the N-body simulation, we can switch from Python to Cython. Cython allows us to write C-like code in Python, which can be compiled to C for significantly faster execution. This is particularly beneficial for computationally intensive tasks like the Barnes-Hut algorithm, where the performance can be a bottleneck. 
+By switching to Cython, I achieved a speedup of approximately 10x compared to the pure Python implementation, allowing for larger simulations and faster results.
 
 ## Sources
 - [Barnes-Hut Algorithm](https://en.wikipedia.org/wiki/Barnes%E2%80%93Hut_simulation)
