@@ -1,4 +1,4 @@
-from NBodySimulation.quadtree import QuadTree, Rectangle, Body
+from quadtree import QuadTree, Rectangle, Body
 import numba
 
 class Particle(Body):
