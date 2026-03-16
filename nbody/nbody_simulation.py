@@ -1,12 +1,26 @@
 try:
-    from barnes_hut_cython import BarnesHut, Particle, Rectangle, integrate_step_1, integrate_step_2
+    from .barnes_hut_cython import BarnesHut, Particle, Rectangle, integrate_step_1, integrate_step_2
 except ImportError:
     raise ImportError("Cython module not found. Please compile barnes_hut_cython.pyx before running the simulation.")
 import numpy as np
 import os
-from progress.bar import Bar
 import time
-import numba
+
+try:
+    from progress.bar import Bar
+except ImportError:
+    class Bar:
+        def __init__(self, *args, **kwargs):
+            pass
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, tb):
+            return False
+
+        def next(self):
+            pass
 
 
 class NBodySimulation:

@@ -5,7 +5,19 @@ import os
 
 FPS = 30
 
-def load_simulation_settings(path: str = 'saves/settings.npz') -> dict:
+
+def _resolve_default_paths(settings_path: str, states_path: str) -> tuple[str, str]:
+    if os.path.exists(settings_path) and os.path.exists(states_path):
+        return settings_path, states_path
+
+    legacy_settings = 'saves/settings.npz'
+    legacy_states = 'saves/'
+    if os.path.exists(legacy_settings) and os.path.exists(legacy_states):
+        return legacy_settings, legacy_states
+
+    return settings_path, states_path
+
+def load_simulation_settings(path: str = 'outputs/saves/settings.npz') -> dict:
     """
     Loads the simulation settings from a file.
     
@@ -19,7 +31,7 @@ def load_simulation_settings(path: str = 'saves/settings.npz') -> dict:
     return data
 
 
-def load_simulation_states(path: str = 'saves/') -> list:
+def load_simulation_states(path: str = 'outputs/saves/') -> list:
     """
     Loads the simulation states from a directory.
     
@@ -93,6 +105,7 @@ def animate_simulation(states: list, settings: dict) -> None:
     anim.save('nbody_simulation.mp4', writer='ffmpeg', fps=FPS)
     
 if __name__ == "__main__":
-    settings = load_simulation_settings()
-    states = load_simulation_states()
+    settings_path, states_path = _resolve_default_paths('outputs/saves/settings.npz', 'outputs/saves/')
+    settings = load_simulation_settings(settings_path)
+    states = load_simulation_states(states_path)
     animate_simulation(states, settings)

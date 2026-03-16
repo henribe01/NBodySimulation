@@ -1,6 +1,36 @@
 # N-body Simulation with Barnes-Hut Algorithm
 This is a simple N-body simulation implemented in Python using the Barnes-Hut algorithm for efficient force calculation. The simulation is going to be deployed on a web server using Streamlit, allowing users to interact with the simulation in real-time. 
 
+## Project Structure
+
+- `nbody/`: reusable simulation engine and Cython extension
+- `examples/`: runnable scenarios (easy to extend with new setups)
+- `tools/`: utilities such as state animation/export
+- `outputs/`: generated simulation data
+
+## Quick Start
+
+Build Cython extension:
+
+```bash
+python setup.py build_ext --inplace
+```
+
+Run examples:
+
+```bash
+python examples/spherical_collapse.py
+python examples/galaxy.py
+```
+
+Animate saved states:
+
+```bash
+python tools/animate_states.py
+```
+
+See `examples/README.md` for guidance on adding more examples.
+
 ## Goals
 - Gaining first experiences with Streamlit for web deployment.
 - Implementing the Barnes-Hut algorithm for efficient N-body simulations.

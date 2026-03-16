@@ -1,5 +1,12 @@
+from pathlib import Path
+import sys
+
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
+
 import numpy as np
-from nbody_simulation import NBodySimulation, Particle, Rectangle
+from nbody.nbody_simulation import NBodySimulation, Particle, Rectangle
 import matplotlib.pyplot as plt
 
 def create_galaxy(num_stars: int, boundary: Rectangle, radius_bulge: float = 0.5, radius_halo: float = 15.0, radius_disk: float = 3.0, softening: float = 1e-9) -> list[Particle]:
@@ -94,10 +101,6 @@ if __name__ == "__main__":
     softening = 1e-9
     max_capacity = 16
     theta = 0.9
-    max_depth = 20
-    min_cell_size = 1e-6
-    integrator = 'leapfrog'
-    
     # Create galaxy and run simulation
     stars = create_galaxy(num_stars, boundary, radius_bulge, radius_halo, radius_disk, softening)
     simulation = NBodySimulation(
@@ -105,11 +108,8 @@ if __name__ == "__main__":
         boundary,
         theta=theta,
         max_capacity=max_capacity,
-        max_depth=max_depth,
-        min_cell_size=min_cell_size,
-        integrator=integrator,
     )
-    simulation.run(steps=1000, dt=0.01, save_interval=-1, save_path='saves/')
+    simulation.run(steps=1000, dt=0.01, save_interval=-1, save_path='outputs/saves/')
     
     # # Plot initial galaxy
     # fig, ax = plt.subplots()

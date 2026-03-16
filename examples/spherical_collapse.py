@@ -1,4 +1,11 @@
-from nbody_simulation import NBodySimulation, Particle, Rectangle
+from pathlib import Path
+import sys
+
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
+
+from nbody.nbody_simulation import NBodySimulation, Particle, Rectangle
 import numpy as np
 import time
 
@@ -60,6 +67,6 @@ simulation = NBodySimulation(
     tree_rebuild_interval=rebuild_interval
 )
 start = time.time()
-simulation.run(steps=int(t_final / dt), dt=dt, save_interval=save_interval, save_path='saves/')
+simulation.run(steps=int(t_final / dt), dt=dt, save_interval=save_interval, save_path='outputs/saves/')
 end = time.time()
 print(f"Simulation completed in {end - start:.2f} seconds.")
