@@ -87,6 +87,12 @@ class NBodySimulation:
             
         if save_interval > 0 and not os.path.exists(save_path):
             os.makedirs(save_path)
+            
+        # Export the initial state before starting the simulation and settings
+        if save_interval > 0:
+            self.save_state(0, save_path)
+            t_final = steps * dt
+            self.export_settings(save_path, dt, t_final)
         
         if show_progress:
             with Bar('Running Simulation', max=steps) as bar:
@@ -110,9 +116,29 @@ class NBodySimulation:
         - step (int): The current step number, used for naming the save file.
         - save_path (str): The directory path where the simulation state will be saved.
         """
-        np.savez(f"{save_path}state_{step}.npz", 
+        np.savez(f"{save_path}state_{step:06d}.npz", 
                  x=[p.x for p in self.particles], 
                  y=[p.y for p in self.particles], 
                  vx=[p.vx for p in self.particles], 
                  vy=[p.vy for p in self.particles], 
                  mass=[p.mass for p in self.particles])
+        
+    def export_settings(self, save_path: str, dt: float, t_final: float) -> None:
+        """
+        Exports the simulation settings to a file for later reference.
+        
+        Parameters:
+        - save_path (str): The directory path where the settings will be saved.
+        - dt (float): The time interval for each step.
+        - t_final (float): The final time of the simulation.
+        """
+        settings = {
+            'theta': self.theta,
+            'softening': self.softening,
+            'max_capacity': self.max_capacity,
+            'tree_rebuild_interval': self.tree_rebuild_interval,
+            'boundary': (self.boundary.x_min, self.boundary.x_max, self.boundary.y_max, self.boundary.y_min),
+            'dt': dt,
+            't_final': t_final,
+        }
+        np.savez(f"{save_path}settings.npz", **settings)
