@@ -102,6 +102,12 @@ class NBodySimulation:
         if save_interval > 0 and not os.path.exists(save_path):
             os.makedirs(save_path)
             
+        # Clear any existing saves in the directory if save_interval is specified
+        if save_interval > 0 and os.path.exists(save_path):
+            for file in os.listdir(save_path):
+                if file.startswith('state_') and file.endswith('.npz'):
+                    os.remove(os.path.join(save_path, file))
+            
         # Export the initial state before starting the simulation and settings
         if save_interval > 0:
             self.save_state(0, save_path)
