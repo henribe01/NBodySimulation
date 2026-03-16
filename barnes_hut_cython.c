@@ -7648,7 +7648,7 @@ static void __pyx_f_17barnes_hut_cython_9BarnesHut__compute_force(struct __pyx_o
  *                 dy_p = p_other.y - p.y
  *                 dist_sq = dx_p * dx_p + dy_p * dy_p + softening_sq             # <<<<<<<<<<<<<<
  *                 distance = sqrt(dist_sq)
- *                 force_mag = (p_other.mass * p.inv_mass) / dist_sq
+ *                 force_mag = (p_other.mass * p.mass) / dist_sq
 */
       __pyx_v_dist_sq = (((__pyx_v_dx_p * __pyx_v_dx_p) + (__pyx_v_dy_p * __pyx_v_dy_p)) + __pyx_v_softening_sq);
 
@@ -7656,7 +7656,7 @@ static void __pyx_f_17barnes_hut_cython_9BarnesHut__compute_force(struct __pyx_o
  *                 dy_p = p_other.y - p.y
  *                 dist_sq = dx_p * dx_p + dy_p * dy_p + softening_sq
  *                 distance = sqrt(dist_sq)             # <<<<<<<<<<<<<<
- *                 force_mag = (p_other.mass * p.inv_mass) / dist_sq
+ *                 force_mag = (p_other.mass * p.mass) / dist_sq
  * 
 */
       __pyx_v_distance = sqrt(__pyx_v_dist_sq);
@@ -7664,11 +7664,11 @@ static void __pyx_f_17barnes_hut_cython_9BarnesHut__compute_force(struct __pyx_o
       /* "barnes_hut_cython.pyx":189
  *                 dist_sq = dx_p * dx_p + dy_p * dy_p + softening_sq
  *                 distance = sqrt(dist_sq)
- *                 force_mag = (p_other.mass * p.inv_mass) / dist_sq             # <<<<<<<<<<<<<<
+ *                 force_mag = (p_other.mass * p.mass) / dist_sq             # <<<<<<<<<<<<<<
  * 
  *                 # Accumulate forces
 */
-      __pyx_v_force_mag = ((__pyx_v_p_other->mass * __pyx_v_p->inv_mass) / __pyx_v_dist_sq);
+      __pyx_v_force_mag = ((__pyx_v_p_other->mass * __pyx_v_p->mass) / __pyx_v_dist_sq);
 
       /* "barnes_hut_cython.pyx":192
  * 
@@ -7786,7 +7786,7 @@ static void __pyx_f_17barnes_hut_cython_9BarnesHut__compute_force(struct __pyx_o
  *         size = self.boundary.x_max - self.boundary.x_min
  *         if (size * size) < (theta_sq * dist_sq):             # <<<<<<<<<<<<<<
  *             # Treat this node as a single body
- *             force_mag = (self.total_mass * p.inv_mass) / dist_sq
+ *             force_mag = (self.total_mass * p.mass) / dist_sq
 */
   __pyx_t_2 = ((__pyx_v_size * __pyx_v_size) < (__pyx_v_theta_sq * __pyx_v_dist_sq));
   if (__pyx_t_2) {
@@ -7794,15 +7794,15 @@ static void __pyx_f_17barnes_hut_cython_9BarnesHut__compute_force(struct __pyx_o
     /* "barnes_hut_cython.pyx":208
  *         if (size * size) < (theta_sq * dist_sq):
  *             # Treat this node as a single body
- *             force_mag = (self.total_mass * p.inv_mass) / dist_sq             # <<<<<<<<<<<<<<
+ *             force_mag = (self.total_mass * p.mass) / dist_sq             # <<<<<<<<<<<<<<
  *             p.fx += force_mag * dx / distance
  *             p.fy += force_mag * dy / distance
 */
-    __pyx_v_force_mag = ((__pyx_v_self->total_mass * __pyx_v_p->inv_mass) / __pyx_v_dist_sq);
+    __pyx_v_force_mag = ((__pyx_v_self->total_mass * __pyx_v_p->mass) / __pyx_v_dist_sq);
 
     /* "barnes_hut_cython.pyx":209
  *             # Treat this node as a single body
- *             force_mag = (self.total_mass * p.inv_mass) / dist_sq
+ *             force_mag = (self.total_mass * p.mass) / dist_sq
  *             p.fx += force_mag * dx / distance             # <<<<<<<<<<<<<<
  *             p.fy += force_mag * dy / distance
  *         else:
@@ -7810,7 +7810,7 @@ static void __pyx_f_17barnes_hut_cython_9BarnesHut__compute_force(struct __pyx_o
     __pyx_v_p->fx = (__pyx_v_p->fx + ((__pyx_v_force_mag * __pyx_v_dx) / __pyx_v_distance));
 
     /* "barnes_hut_cython.pyx":210
- *             force_mag = (self.total_mass * p.inv_mass) / dist_sq
+ *             force_mag = (self.total_mass * p.mass) / dist_sq
  *             p.fx += force_mag * dx / distance
  *             p.fy += force_mag * dy / distance             # <<<<<<<<<<<<<<
  *         else:
@@ -7823,7 +7823,7 @@ static void __pyx_f_17barnes_hut_cython_9BarnesHut__compute_force(struct __pyx_o
  *         size = self.boundary.x_max - self.boundary.x_min
  *         if (size * size) < (theta_sq * dist_sq):             # <<<<<<<<<<<<<<
  *             # Treat this node as a single body
- *             force_mag = (self.total_mass * p.inv_mass) / dist_sq
+ *             force_mag = (self.total_mass * p.mass) / dist_sq
 */
     goto __pyx_L9;
   }

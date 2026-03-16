@@ -186,7 +186,7 @@ cdef class BarnesHut:
                 dy_p = p_other.y - p.y
                 dist_sq = dx_p * dx_p + dy_p * dy_p + softening_sq
                 distance = sqrt(dist_sq)
-                force_mag = (p_other.mass * p.inv_mass) / dist_sq
+                force_mag = (p_other.mass * p.mass) / dist_sq
 
                 # Accumulate forces
                 p.fx += force_mag * dx_p / distance
@@ -205,7 +205,7 @@ cdef class BarnesHut:
         size = self.boundary.x_max - self.boundary.x_min
         if (size * size) < (theta_sq * dist_sq):
             # Treat this node as a single body
-            force_mag = (self.total_mass * p.inv_mass) / dist_sq
+            force_mag = (self.total_mass * p.mass) / dist_sq
             p.fx += force_mag * dx / distance
             p.fy += force_mag * dy / distance
         else:
