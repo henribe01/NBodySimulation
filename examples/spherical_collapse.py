@@ -32,7 +32,7 @@ def generate_particles(num_stars: int, radius: float = 1.0, total_mass: float = 
     return particles
 
 # Simulation settings
-num_stars = 5000
+num_stars = 10000
 softening = 0.05
 dt = 0.01
 boundary = Rectangle(-50, 50, 50, -50)
