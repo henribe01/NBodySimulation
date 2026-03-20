@@ -1,5 +1,5 @@
 # N-body Simulation with Barnes-Hut Algorithm
-This is a simple N-body simulation implemented in Python using the Barnes-Hut algorithm for efficient force calculation. The simulation is going to be deployed on a web server using Streamlit, allowing users to interact with the simulation in real-time. 
+This is a simple N-body simulation implemented in Python using the Barnes-Hut algorithm for efficient force calculation. The project includes a Cython extension for performance optimization. The simulations can be visualized using Matplotlib.
 
 https://github.com/user-attachments/assets/dfcdc91e-a09c-47b7-be7d-3663378d375b
 ## Project Structure
@@ -32,17 +32,11 @@ python tools/animate_states.py
 
 See `examples/README.md` for guidance on adding more examples.
 
-## Goals
-- Gaining first experiences with Streamlit for web deployment.
-- Implementing the Barnes-Hut algorithm for efficient N-body simulations.
-- Visualizing the simulation results in an interactive web interface.
-
 ## Features
-- [x] First tests with Streamlit for web deployment.
-- [x] Implementation of the Barnes-Hut algorithm for N-body simulations.
-- [ ] Interactive visualization of the simulation results.
-- [ ] User controls for adjusting simulation parameters (e.g., number of bodies, time step, etc.).
-- [x] Switch from Python to Cython for performance optimization 
+- Simulating gravitational interactions between bodies in 2D and 3D.
+- Implementing the Barnes-Hut algorithm for efficient N-body simulations.
+- Visualizing the simulation results using Matplotlib.
+- Optimizing performance with Cython for larger simulations.
 
 ## Barnes-Hut Algorithm
 The Barnes-Hut algorithm is a method for efficiently simulating the gravitational interactions between a large number of bodies. It works by dividing the simulation space into a hierarchical tree structure (octree in 3D, quadtree in 2D) and approximating the forces from distant bodies using their center of mass. This reduces the computational complexity from $\mathcal{O}(N^2)$ to $\mathcal{O}(N \log N)$, making it feasible to simulate larger systems.
@@ -53,5 +47,5 @@ By switching to Cython, I achieved a speedup of approximately 10x compared to th
 
 ## Sources
 - [Barnes-Hut Algorithm](https://en.wikipedia.org/wiki/Barnes%E2%80%93Hut_simulation)
-- [Streamlit Documentation](https://docs.streamlit.io/)
+- [Cython Documentation](https://cython.readthedocs.io/)
 - [The Barnes-Hut Algorithm by Tom Ventimiglia & Kevin Wayne](https://www.arborjs.com/docs/barnes-hut) 
